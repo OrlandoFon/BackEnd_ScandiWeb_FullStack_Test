@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: php_app
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "9000:9000"
+    networks:
+      - app_network
+    depends_on:
+      - db
+    environment:
+      PHP_INI_SCAN_DIR: "/usr/local/etc/php/conf.d"
+      COMPOSER_ALLOW_SUPERUSER: 1
+    command: php -S 0.0.0.0:9000 -t public
+
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: scandiweb_db
+      MYSQL_USER: scandiweb_user
+      MYSQL_PASSWORD: scandiweb_password
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3309:3306"
+    networks:
+      - app_network
+
+volumes:
+  db_data:
+
+networks:
+  app_network:
+    driver: bridge
