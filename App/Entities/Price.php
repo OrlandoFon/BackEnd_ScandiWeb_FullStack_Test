@@ -10,32 +10,22 @@ class Price
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column]
     private int $id;
 
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     private float $amount;
 
-    #[ORM\ManyToOne(targetEntity: AbstractProduct::class, inversedBy: 'prices')]
-    #[ORM\JoinColumn(name: 'product_id', referencedColumnName: 'id')]
-    private AbstractProduct $product;
+    #[ORM\OneToOne(targetEntity: Product::class, inversedBy: 'price')]
+    #[ORM\JoinColumn(name: 'product_id', referencedColumnName: 'id', nullable: false)]
+    private Product $product;
 
     #[ORM\Embedded(class: Currency::class)]
     private Currency $currency;
 
-    public function __construct()
+    public function getProduct(): Product
     {
-        $this->currency = new Currency();
-    }
-
-    public function getId(): int
-    {
-        return $this->id;
-    }
-
-    public function getAmount(): float
-    {
-        return $this->amount;
+        return $this->product;
     }
 
     public function setAmount(float $amount): self
@@ -44,20 +34,10 @@ class Price
         return $this;
     }
 
-    public function getProduct(): AbstractProduct
-    {
-        return $this->product;
-    }
-
-    public function setProduct(AbstractProduct $product): self
+    public function setProduct(Product $product): self
     {
         $this->product = $product;
         return $this;
-    }
-
-    public function getCurrency(): Currency
-    {
-        return $this->currency;
     }
 
     public function setCurrency(Currency $currency): self

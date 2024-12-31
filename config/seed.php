@@ -2,83 +2,93 @@
 
 $entityManager = require 'bootstrap.php';
 
-use App\Entities\TechProduct;
-use App\Entities\ClothesProduct;
-use App\Entities\TechAttribute;
-use App\Entities\ClothesAttribute;
-use App\Entities\AbstractAttributeItem;
+use App\Entities\Product;
+use App\Entities\Category;
+use App\Entities\Attribute;
 use App\Entities\Price;
 use App\Entities\Currency;
 
 echo "Starting database seeding...\n";
 
 try {
-    $startTime = microtime(true);
+    // Drop existing tables
+    $connection = $entityManager->getConnection();
+    $connection->executeQuery('SET FOREIGN_KEY_CHECKS=0');
+    $connection->executeQuery('DROP TABLE IF EXISTS prices');
+    $connection->executeQuery('DROP TABLE IF EXISTS attributes');
+    $connection->executeQuery('DROP TABLE IF EXISTS products');
+    $connection->executeQuery('DROP TABLE IF EXISTS categories');
+    $connection->executeQuery('SET FOREIGN_KEY_CHECKS=1');
+
+    // Create schema
+    $schemaTool = new \Doctrine\ORM\Tools\SchemaTool($entityManager);
+    $classes = [
+        $entityManager->getClassMetadata(Category::class),
+        $entityManager->getClassMetadata(Product::class),
+        $entityManager->getClassMetadata(Attribute::class),
+        $entityManager->getClassMetadata(Price::class)
+    ];
+    $schemaTool->createSchema($classes);
 
     // Load JSON data
     $jsonData = json_decode(file_get_contents(__DIR__ . '/../data/data.json'), true);
 
-    foreach ($jsonData['data']['products'] as $productData) {
-        // Create product based on category
-        $product = $productData['category'] === 'tech'
-            ? new TechProduct()
-            : new ClothesProduct();
+    // Create categories
+    $categories = [];
+    foreach ($jsonData['data']['categories'] as $categoryData) {
+        $category = new Category();
+        $category->setName($categoryData['name']);
+        $entityManager->persist($category);
+        $categories[$categoryData['name']] = $category;
+    }
+    $entityManager->flush();
 
-        // Set basic product data
-        $product
-            ->setName($productData['name'])
+    // Create products with attributes and prices
+    foreach ($jsonData['data']['products'] as $productData) {
+        $product = new Product();
+        $product->setName($productData['name'])
             ->setInStock($productData['inStock'])
             ->setGallery($productData['gallery'])
             ->setDescription($productData['description'])
-            ->setBrand($productData['brand'])
-            ->setCategory($productData['category']);
+            ->setBrand($productData['brand']);
 
-        // Handle price
-        foreach ($productData['prices'] as $priceData) {
-            $price = new Price();
-            $price->setAmount($priceData['amount']);
-
-            $currency = new Currency();
-            $currency
-                ->setLabel($priceData['currency']['label'])
-                ->setSymbol($priceData['currency']['symbol']);
-
-            $price->setCurrency($currency);
-            $price->setProduct($product);
-            $entityManager->persist($price);
+        if (isset($categories[$productData['category']])) {
+            $product->setCategory($categories[$productData['category']]);
         }
 
-        // Handle attributes
+        $entityManager->persist($product);
+        $entityManager->flush();
+
+        // Create attributes
         foreach ($productData['attributes'] as $attributeData) {
-            $attribute = $productData['category'] === 'tech'
-                ? new TechAttribute()
-                : new ClothesAttribute();
-
-            $attribute
-                ->setName($attributeData['name'])
-                ->setType($attributeData['type']);
-
-            foreach ($attributeData['items'] as $itemData) {
-                $item = new AbstractAttributeItem();
-                $item
-                    ->setDisplayValue($itemData['displayValue'])
-                    ->setValue($itemData['value']);
-
-                $attribute->addItem($item);
-                $entityManager->persist($item);
-            }
-
+            $attribute = new Attribute();
+            $attribute->setName($attributeData['name']);
+            $attribute->setItems($attributeData['items']);
             $attribute->setProduct($product);
             $entityManager->persist($attribute);
         }
 
-        $entityManager->persist($product);
+        // Create price and currency
+        if (!empty($productData['prices'])) {
+            $priceData = $productData['prices'][0]; // Get first price
+
+            $currency = new Currency();
+            $currency->setLabel($priceData['currency']['label'])
+                ->setSymbol($priceData['currency']['symbol']);
+
+            $price = new Price();
+            $price->setAmount($priceData['amount'])
+                ->setCurrency($currency)
+                ->setProduct($product);
+
+            $entityManager->persist($price);
+            $product->setPrice($price);
+        }
     }
 
     $entityManager->flush();
 
-    $elapsedTime = round(microtime(true) - $startTime, 2);
-    echo "Database successfully populated in {$elapsedTime} seconds!\n";
+    echo "Database seeded successfully!\n";
 } catch (\Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
 }

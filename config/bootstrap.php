@@ -3,15 +3,18 @@
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMSetup;
+use Doctrine\ORM\Tools\SchemaTool;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
 $configParams = require __DIR__ . '/config.php';
 
-// Change to createAttributeMetadataConfiguration
 $config = ORMSetup::createAttributeMetadataConfiguration(
-    paths: [__DIR__ . '/../App/Entities'],
-    isDevMode: true,
+    [__DIR__ . '/../App/Entities'],
+    true,
+    null,
+    null,
+    false
 );
 
 $connection = DriverManager::getConnection([
@@ -26,6 +29,14 @@ $entityManager = new EntityManager($connection, $config);
 
 try {
     $connection->connect();
+
+    // Create schema tool
+    $schemaTool = new SchemaTool($entityManager);
+    $metadata = $entityManager->getMetadataFactory()->getAllMetadata();
+
+    // Update schema if needed
+    $schemaTool->updateSchema($metadata);
+
     echo "Database connection successful!\n";
 } catch (\Exception $e) {
     echo "Error connecting to the database: " . $e->getMessage() . "\n";
