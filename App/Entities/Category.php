@@ -8,18 +8,21 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'categories')]
-class Category
+#[ORM\InheritanceType('SINGLE_TABLE')]
+#[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
+#[ORM\DiscriminatorMap(['tech' => 'Tech', 'clothes' => 'Clothes'])]
+abstract class Category
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private int $id;
+    protected int $id;
 
     #[ORM\Column(length: 255)]
-    private string $name;
+    protected string $name;
 
     #[ORM\OneToMany(targetEntity: Product::class, mappedBy: 'category')]
-    private Collection $products;
+    protected Collection $products;
 
     public function __construct()
     {
@@ -31,4 +34,6 @@ class Category
         $this->name = $name;
         return $this;
     }
+
+    abstract public function validateProduct(Product $product): bool;
 }

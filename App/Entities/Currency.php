@@ -5,7 +5,7 @@ namespace App\Entities;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Embeddable]
-class Currency
+abstract class Currency
 {
     #[ORM\Column(length: 3)]
     private string $label;

@@ -3,40 +3,63 @@
 namespace App\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\Common\Collections\ArrayCollection;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'products')]
-class Product
+#[ORM\InheritanceType('SINGLE_TABLE')]
+#[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
+#[ORM\DiscriminatorMap(['tech' => 'Tech', 'clothes' => 'Clothes'])]
+abstract class Product
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private int $id;
+    protected int $id;
 
     #[ORM\Column(length: 255)]
-    private string $name;
+    protected string $name;
 
     #[ORM\Column(type: 'boolean')]
-    private bool $inStock;
+    protected bool $inStock;
 
     #[ORM\Column(type: 'array')]
-    private array $gallery;
+    protected array $gallery;
 
     #[ORM\Column(type: 'text')]
-    private string $description;
+    protected string $description;
 
     #[ORM\Column(length: 255)]
-    private string $brand;
+    protected string $brand;
 
-    #[ORM\ManyToOne(targetEntity: Category::class, inversedBy: 'products')]
-    private Category $category;
+    #[ORM\Column(type: 'json')]
+    protected array $attributes = [];
+
+    #[ORM\Column(type: 'json')]
+    protected array $prices = [];
+
+    abstract public function addAttribute(string $name, array $items): bool;
+    abstract public function addPrice(float $amount, string $label, string $symbol): void;
+    abstract protected function validateAttribute(string $name): bool;
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
 
     public function setName(string $name): self
     {
         $this->name = $name;
         return $this;
+    }
+
+    public function isInStock(): bool
+    {
+        return $this->inStock;
     }
 
     public function setInStock(bool $inStock): self
@@ -45,10 +68,20 @@ class Product
         return $this;
     }
 
+    public function getGallery(): array
+    {
+        return $this->gallery;
+    }
+
     public function setGallery(array $gallery): self
     {
         $this->gallery = $gallery;
         return $this;
+    }
+
+    public function getDescription(): string
+    {
+        return $this->description;
     }
 
     public function setDescription(string $description): self
@@ -57,47 +90,24 @@ class Product
         return $this;
     }
 
+    public function getBrand(): string
+    {
+        return $this->brand;
+    }
+
     public function setBrand(string $brand): self
     {
         $this->brand = $brand;
         return $this;
     }
 
-    public function setCategory(Category $category): self
+    public function getAttributes(): array
     {
-        $this->category = $category;
-        return $this;
+        return $this->attributes;
     }
 
-    #[ORM\OneToMany(targetEntity: Attribute::class, mappedBy: 'product')]
-    private Collection $attributes;
-
-    public function __construct()
+    public function getPrices(): array
     {
-        $this->attributes = new ArrayCollection();
-    }
-
-    public function addAttribute(Attribute $attribute): self
-    {
-        if (!$this->attributes->contains($attribute)) {
-            $this->attributes->add($attribute);
-            $attribute->setProduct($this);
-        }
-        return $this;
-    }
-
-
-
-
-    #[ORM\OneToOne(targetEntity: Price::class, mappedBy: 'product', cascade: ['persist'])]
-    private Price $price;
-
-    public function setPrice(Price $price): self
-    {
-        $this->price = $price;
-        if ($price->getProduct() !== $this) {
-            $price->setProduct($this);
-        }
-        return $this;
+        return $this->prices;
     }
 }

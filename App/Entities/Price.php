@@ -6,7 +6,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'prices')]
-class Price
+abstract class Price
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

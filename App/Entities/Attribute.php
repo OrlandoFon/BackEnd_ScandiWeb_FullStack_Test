@@ -6,7 +6,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'attributes')]
-class Attribute
+abstract class Attribute
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
