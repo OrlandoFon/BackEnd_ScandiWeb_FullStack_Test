@@ -1,37 +1,45 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php'; // Autoload Composer dependencies
+// Define the base directory
+define('BASE_DIR', dirname(__DIR__));
 
-// Define the routes using FastRoute
-$dispatcher = FastRoute\simpleDispatcher(function (FastRoute\RouteCollector $r) {
-    // Define a POST route for the /graphql endpoint
-    $r->post('/graphql', [App\Controllers\GraphQL::class, 'handle']);
-});
+// Autoload dependencies
+require_once BASE_DIR . '/vendor/autoload.php';
 
-// Dispatch the current HTTP request
-$routeInfo = $dispatcher->dispatch(
-    $_SERVER['REQUEST_METHOD'], // The HTTP method used (GET, POST, etc.)
-    $_SERVER['REQUEST_URI']    // The requested URI
-);
+// Load the Bootstrap class
+use Config\Bootstrap;
 
-// Handle the routing result
+// Initialize the EntityManager
+$entityManager = Bootstrap::initEntityManager(require BASE_DIR . '/config/db_params.php');
+
+// Initialize the router
+$dispatcher = Bootstrap::initRoutes();
+
+// Handle the request
+$routeInfo = $dispatcher->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
-        // If no route matches the request, return a 404 Not Found
         http_response_code(404);
         echo json_encode(['error' => '404 Not Found']);
         break;
 
     case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
-        // If the HTTP method is not allowed for the route, return a 405 Method Not Allowed
-        $allowedMethods = $routeInfo[1];
         http_response_code(405);
-        echo json_encode(['error' => '405 Method Not Allowed', 'allowed' => $allowedMethods]);
+        echo json_encode(['error' => '405 Method Not Allowed']);
         break;
 
     case FastRoute\Dispatcher::FOUND:
-        // If the route matches, call the corresponding handler
-        [$class, $method] = $routeInfo[1]; // The handler is defined as [ClassName, methodName]
-        echo (new $class)->$method(); // Instantiate the class and call the method
+        [$class, $method] = $routeInfo[1];
+        if ($class === \App\Controllers\GraphQL::class) {
+            \App\Controllers\GraphQL::setEntityManager($entityManager);
+            echo $class::$method();
+        } else {
+            echo (new $class($entityManager))->$method();
+        }
+        break;
+
+    default:
+        http_response_code(500);
+        echo json_encode(['error' => '500 Internal Server Error']);
         break;
 }

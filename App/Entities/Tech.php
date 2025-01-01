@@ -3,41 +3,46 @@
 namespace App\Entities;
 
 use Doctrine\ORM\Mapping as ORM;
-use App\Traits\CategoryTrait;
 
+/**
+ * Entity class representing a product in the "Tech" category.
+ */
 #[ORM\Entity]
 class Tech extends Product
 {
-    use CategoryTrait;
-
-    private const VALID_ATTRIBUTES = ['Capacity', 'USB', 'Color'];
-
+    /**
+     * Add an attribute to the product, validating it against allowed attributes for the "Tech" category.
+     *
+     * @param string $name The name of the attribute.
+     * @param array $items The items associated with the attribute.
+     * @return bool True if the attribute was successfully added, false otherwise.
+     */
     public function addAttribute(string $name, array $items): bool
     {
-        if (!$this->validateAttribute($name)) {
-            return false;
+        // Validate the attribute before adding
+        if ($this->validateAttribute($name)) {
+            return parent::addAttribute($name, $items); // Call the parent method to add the attribute
         }
-
-        $this->attributes[] = [
-            'name' => $name,
-            'items' => $items
-        ];
-        return true;
+        return false; // Return false if validation fails
     }
 
-    public function addPrice(float $amount, string $label, string $symbol): void
-    {
-        $this->prices[] = [
-            'amount' => $amount,
-            'currency' => [
-                'label' => $label,
-                'symbol' => $symbol
-            ]
-        ];
-    }
-
+    /**
+     * Validate if an attribute name is allowed for the "Tech" category.
+     *
+     * @param string $name The name of the attribute to validate.
+     * @return bool True if the attribute is valid, false otherwise.
+     */
     protected function validateAttribute(string $name): bool
     {
-        return in_array($name, self::VALID_ATTRIBUTES);
+        // List of allowed attributes for the "Tech" category
+        $allowedAttributes = [
+            'Capacity',
+            'Color',
+            'With USB 3 ports',
+            'Touch ID in keyboard',
+        ];
+
+        // Check if the attribute is in the allowed list
+        return in_array($name, $allowedAttributes);
     }
 }
