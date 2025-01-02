@@ -44,6 +44,16 @@ services:
       - app_network
     entrypoint: ["php", "seed.php"]
 
+  php-cs-fixer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: php_cs_fixer
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: composer fix-cs
+
 volumes:
   db_data:
 

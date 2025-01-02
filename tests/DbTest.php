@@ -184,7 +184,7 @@ class DbTest extends TestCase
         // Filter valid products from JSON
         $validProducts = array_filter(
             $this->jsonData['products'] ?? [],
-            fn($p) => isset($p['name']) && isset($p['category'])
+            fn ($p) => isset($p['name']) && isset($p['category'])
         );
         $this->assertEquals(
             count($validProducts),

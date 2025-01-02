@@ -27,7 +27,8 @@
   },
   "scripts": {
     "test": "phpunit --testdox",
-    "analyse": "phpstan analyse src tests"
+    "analyse": "phpstan analyse src tests",
+    "fix-cs": "php-cs-fixer fix --verbose"
   },
   "config": {
     "optimize-autoloader": true,
