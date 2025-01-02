@@ -2,93 +2,190 @@
 
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Unit tests for GraphQL API.
+ */
 class GraphQLTest extends TestCase
 {
-    // Base URL for the GraphQL endpoint
+    /**
+     * Base URL for GraphQL API.
+     */
     private string $baseUrl;
 
     /**
-     * Sets up the base URL for the GraphQL endpoint before each test.
+     * Data extracted from data.json for test verification.
+     */
+    private array $jsonData = [];
+
+    /**
+     * Setup method to initialize test environment.
      */
     protected function setUp(): void
     {
-        // Base URL of the GraphQL endpoint
         $this->baseUrl = 'http://localhost:9000/graphql';
+
+        // Load and parse data.json to use as expected test data
+        $dataFile = __DIR__ . '/../data/data.json';
+        $jsonContent = json_decode(file_get_contents($dataFile), true);
+        $this->jsonData = $jsonContent['data'] ?? [];
     }
 
     /**
-     * Tests the "hello" query from the GraphQL endpoint.
+     * Test querying all seeded data (categories and products) from the GraphQL API.
      */
-    public function testHelloQuery(): void
+    public function testQueryAllSeededData(): void
     {
-        // Define the query to be sent to the endpoint
         $query = [
-            'query' => '{ hello }'
+            'query' => '
+            query {
+                categories {
+                    id
+                    name
+                }
+                products {
+                    id
+                    name
+                    brand
+                    inStock
+                    description
+                    gallery
+                    category {
+                        id
+                        name
+                    }
+                    attributes {
+                        id
+                        name
+                        items {
+                            value
+                            displayValue
+                        }      
+                    }
+                    price {
+                        amount
+                        currency {
+                            label
+                            symbol
+                        }
+                    }
+                }
+            }
+        '
         ];
 
-        // Initialize a cURL session
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseUrl); // Set the URL
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Return the transfer as a string
-        curl_setopt($ch, CURLOPT_POST, true); // Use POST method
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json', // Set the content type as JSON
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($query)); // Send the GraphQL query as JSON
+        $responseData = $this->executeGraphQL($query);
 
-        // Execute the request and get the response
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); // Get the HTTP status code
-        curl_close($ch); // Close the cURL session
-
-        // Assert that the HTTP response code is 200 (OK)
-        $this->assertEquals(200, $httpCode, 'Expected HTTP status code 200');
-
-        // Decode the JSON response
-        $responseData = json_decode($response, true);
-
-        // Assert that the response contains the "data" key
+        // Ensure data key exists in the response
         $this->assertArrayHasKey('data', $responseData);
 
-        // Assert that the "hello" query returns the expected result
-        $this->assertEquals('Hello, World!', $responseData['data']['hello']);
+        $data = $responseData['data'];
+
+        // Verify categories
+        $this->assertArrayHasKey('categories', $data, 'Response missing "categories".');
+        foreach ($data['categories'] as $index => $category) {
+            $expectedCategory = $this->jsonData['categories'][$index];
+            $this->assertEquals($expectedCategory['name'], $category['name'], "Category mismatch at index $index.");
+        }
+
+        // Verify products
+        $this->assertArrayHasKey('products', $data, 'Response missing "products".');
+        foreach ($data['products'] as $index => $product) {
+            $expectedProduct = $this->jsonData['products'][$index];
+
+            // Check product fields
+            $this->assertEquals($expectedProduct['name'], $product['name'], "Product name mismatch at index $index.");
+            $this->assertEquals($expectedProduct['brand'], $product['brand'], "Product brand mismatch at index $index.");
+            $this->assertEquals($expectedProduct['inStock'], $product['inStock'], "Product stock mismatch at index $index.");
+            $this->assertEquals($expectedProduct['description'], $product['description'], "Product description mismatch at index $index.");
+            $this->assertEquals($expectedProduct['gallery'], $product['gallery'], "Product gallery mismatch at index $index.");
+
+            // Check product category
+            $this->assertEquals($expectedProduct['category'], $product['category']['name'], "Category mismatch for product $index.");
+
+            // Check attributes
+            foreach ($product['attributes'] as $attrIndex => $attribute) {
+                $expectedAttr = $expectedProduct['attributes'][$attrIndex];
+                $this->assertEquals($expectedAttr['name'], $attribute['name'], "Attribute name mismatch for product $index.");
+
+                // Validate items within the attribute
+                foreach ($attribute['items'] as $itemIndex => $item) {
+                    $expectedItem = $expectedAttr['items'][$itemIndex];
+                    $expectedItemFiltered = [
+                        'value' => $expectedItem['value'],
+                        'displayValue' => $expectedItem['displayValue']
+                    ];
+                    $this->assertEquals($expectedItemFiltered, $item, "Attribute items mismatch for product $index.");
+                }
+            }
+
+            // Check product price
+            if (isset($expectedProduct['prices'])) {
+                $expectedPrice = $expectedProduct['prices'][0];
+                $this->assertNotNull($product['price'], "Price missing for product $index.");
+                $this->assertEquals($expectedPrice['amount'], $product['price']['amount'], "Price amount mismatch for product $index.");
+                $this->assertEquals($expectedPrice['currency']['label'], $product['price']['currency']['label'], "Currency label mismatch for product $index.");
+                $this->assertEquals($expectedPrice['currency']['symbol'], $product['price']['currency']['symbol'], "Currency symbol mismatch for product $index.");
+            }
+        }
     }
 
     /**
-     * Tests the "echo" query from the GraphQL endpoint with a message argument.
-     */
-    public function testEchoQuery(): void
+     * Test creating a new order via GraphQL mutation.
+     */ public function testCreateOrderMutation(): void
     {
-        // Define the query with the "echo" field and a message argument
-        $query = [
-            'query' => '{ echo(message: "Test") }'
+        $mutation = [
+            'query' => '
+            mutation {
+                createOrder(
+                    productId: 1,
+                    quantity: 2
+                ) {
+                    id
+                    product {
+                        name
+                    }
+                    quantity
+                    unit_price
+                    total
+                }
+            }
+        '
         ];
 
-        // Initialize a cURL session
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseUrl); // Set the URL
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Return the transfer as a string
-        curl_setopt($ch, CURLOPT_POST, true); // Use POST method
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json', // Set the content type as JSON
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($query)); // Send the GraphQL query as JSON
+        $responseData = $this->executeGraphQL($mutation);
 
-        // Execute the request and get the response
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); // Get the HTTP status code
-        curl_close($ch); // Close the cURL session
-
-        // Assert that the HTTP response code is 200 (OK)
-        $this->assertEquals(200, $httpCode, 'Expected HTTP status code 200');
-
-        // Decode the JSON response
-        $responseData = json_decode($response, true);
-
-        // Assert that the response contains the "data" key
         $this->assertArrayHasKey('data', $responseData);
+        $this->assertArrayHasKey('createOrder', $responseData['data']);
 
-        // Assert that the "echo" query returns the expected result with the provided message
-        $this->assertEquals('You said: Test', $responseData['data']['echo']);
+        $order = $responseData['data']['createOrder'];
+        $this->assertIsArray($order);
+        $this->assertArrayHasKey('id', $order);
+        $this->assertNotNull($order['id']);
+    }
+
+    /**
+     * Executes a GraphQL query or mutation via cURL and returns the response as an array.
+     *
+     * @param array $payload The GraphQL query or mutation payload.
+     * @return array The decoded JSON response from the API.
+     */
+    private function executeGraphQL(array $payload): array
+    {
+        $ch = curl_init($this->baseUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $this->assertEquals(200, $httpCode, "Expected HTTP 200, got $httpCode.");
+
+        $decoded = json_decode($response, true);
+        $this->assertIsArray($decoded, 'Failed to decode JSON response.');
+
+        return $decoded;
     }
 }

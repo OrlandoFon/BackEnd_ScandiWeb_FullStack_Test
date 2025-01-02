@@ -8,6 +8,7 @@ use App\Entities\Price;
 use App\Entities\Attribute;
 use App\Entities\Tech;
 use App\Entities\Clothes;
+use App\Entities\Order;
 
 // Autoload dependencies
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -36,6 +37,7 @@ try {
     $connection->executeQuery('DROP TABLE IF EXISTS attributes');
     $connection->executeQuery('DROP TABLE IF EXISTS products');
     $connection->executeQuery('DROP TABLE IF EXISTS categories');
+    $connection->executeQuery('DROP TABLE IF EXISTS orders');
 
     // Re-enable foreign key checks after dropping tables
     $connection->executeQuery('SET FOREIGN_KEY_CHECKS=1');
@@ -47,6 +49,7 @@ try {
         $entityManager->getClassMetadata(Product::class),
         $entityManager->getClassMetadata(Price::class),
         $entityManager->getClassMetadata(Attribute::class),
+        $entityManager->getClassMetadata(Order::class),
     ];
     $schemaTool->createSchema($classes);
 

@@ -1,10 +1,44 @@
 <?php
 
-// Define the base directory
+// Define the base directory for the application
 define('BASE_DIR', dirname(__DIR__));
 
-// Autoload dependencies
+// Define the logs directory
+const LOGS_DIR = BASE_DIR . '/logs';
+
+// Ensure logs directory exists with proper permissions
+if (!is_dir(LOGS_DIR)) {
+    mkdir(LOGS_DIR, 0775, true);
+}
+
+// Define the specific log file for GraphQL
+$logFile = LOGS_DIR . '/graphql.log';
+
+// Autoload dependencies using Composer
 require_once BASE_DIR . '/vendor/autoload.php';
+
+// Add specific handler for errors
+set_error_handler(function ($errno, $errstr, $errfile, $errline) use ($logFile) {
+    $message = date('Y-m-d H:i:s') . " [$errno] $errstr in $errfile:$errline\n";
+    error_log($message, 3, $logFile);
+    return true;
+});
+
+// Update exception handler to log uncaught exceptions
+set_exception_handler(function (Throwable $e) use ($logFile) {
+    $message = date('Y-m-d H:i:s') . " Uncaught Exception:\n";
+    $message .= "Message: " . $e->getMessage() . "\n";
+    $message .= "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
+    $message .= "Trace:\n" . $e->getTraceAsString() . "\n";
+    error_log($message, 3, $logFile);
+});
+
+// Log application start
+try {
+    error_log("GraphQL server started - " . date('Y-m-d H:i:s') . "\n", 3, $logFile);
+} catch (Exception $e) {
+    die("Failed to write to log file: " . $e->getMessage());
+}
 
 // Load the Bootstrap class
 use Config\Bootstrap;

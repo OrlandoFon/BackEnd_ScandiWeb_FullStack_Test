@@ -43,6 +43,6 @@ class Tech extends Product
         ];
 
         // Check if the attribute is in the allowed list
-        return in_array($name, $allowedAttributes);
+        return in_array($name, $allowedAttributes, true);
     }
 }
