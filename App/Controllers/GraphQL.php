@@ -4,15 +4,18 @@ namespace App\Controllers;
 
 use GraphQL\GraphQL as GraphQLBase;
 use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Type\SchemaConfig;
+use App\Entities\StandardProduct;
 use App\Entities\Product;
 use App\Entities\Category;
 use App\Entities\Price;
 use App\Entities\Attribute;
 use App\Entities\Currency;
 use App\Entities\Order;
+use App\Entities\StandardOrder;
 use Doctrine\ORM\EntityManager;
 use RuntimeException;
 use Throwable;
@@ -22,19 +25,12 @@ use Throwable;
  */
 class GraphQL
 {
-    /**
-     * @var EntityManager|null Doctrine EntityManager instance for database interactions.
-     */
     private static ?EntityManager $entityManager = null;
 
-    /**
-     * Sets the EntityManager to be used for database operations.
-     *
-     * @param EntityManager $em The Doctrine EntityManager instance.
-     */
     public static function setEntityManager(EntityManager $em): void
     {
         self::$entityManager = $em;
+        error_log("[GraphQL] EntityManager set: " . get_class($em));
     }
 
     /**
@@ -45,6 +41,13 @@ class GraphQL
     public static function handle(): string
     {
         $logFile = dirname(__DIR__, 2) . '/logs/graphql.log';
+
+        if (!self::$entityManager) {
+            throw new RuntimeException('EntityManager not initialized');
+        }
+
+        error_log("[GraphQL] Using EntityManager: " . get_class(self::$entityManager));
+
 
         try {
             //------------------------------------------------------------------
@@ -167,6 +170,19 @@ class GraphQL
                             return $result;
                         },
                     ],
+                    'orders' => [
+                        'type' => Type::listOf($orderType),
+                        'resolve' => function () use ($logFile) {
+                            try {
+                                $orders = self::$entityManager->getRepository(StandardOrder::class)->findAll();
+                                error_log("Orders queried, found: " . count($orders) . "\n", 3, $logFile);
+                                return $orders;
+                            } catch (Throwable $e) {
+                                error_log("Orders query failed: {$e->getMessage()}\n", 3, $logFile);
+                                throw $e;
+                            }
+                        }
+                    ]
                 ],
             ]);
 
@@ -197,6 +213,149 @@ class GraphQL
                                 throw new RuntimeException($e->getMessage());
                             }
                         },
+                    ],
+                    'createProduct' => [
+                        'type' => $productType,
+                        'args' => [
+                            'name' => ['type' => Type::nonNull(Type::string())],
+                            'category' => ['type' => Type::nonNull(Type::string())],
+                            'brand' => ['type' => Type::string()],
+                            'description' => ['type' => Type::string()],
+                            'inStock' => ['type' => Type::boolean()],
+                            'gallery' => ['type' => Type::listOf(Type::string())],
+                            'attributes' => ['type' => Type::listOf(new InputObjectType([
+                                'name' => 'AttributeInput',
+                                'fields' => [
+                                    'name' => ['type' => Type::nonNull(Type::string())],
+                                    'items' => ['type' => Type::listOf(new InputObjectType([
+                                        'name' => 'AttributeItemInput',
+                                        'fields' => [
+                                            'value' => ['type' => Type::nonNull(Type::string())],
+                                            'displayValue' => ['type' => Type::nonNull(Type::string())]
+                                        ]
+                                    ]))]
+                                ]
+                            ]))],
+                            'price' => ['type' => new InputObjectType([
+                                'name' => 'PriceInput',
+                                'fields' => [
+                                    'amount' => ['type' => Type::nonNull(Type::float())],
+                                    'currency' => ['type' => new InputObjectType([
+                                        'name' => 'CurrencyInput',
+                                        'fields' => [
+                                            'label' => ['type' => Type::nonNull(Type::string())],
+                                            'symbol' => ['type' => Type::nonNull(Type::string())]
+                                        ]
+                                    ])]
+                                ]
+                            ])]
+                        ],
+                        'resolve' => function ($root, array $args) use ($logFile) {
+                            try {
+                                $category = self::$entityManager->getRepository(Category::class)
+                                    ->findOneBy(['name' => $args['category']]);
+
+                                if (!$category) {
+                                    throw new RuntimeException("Category not found: {$args['category']}");
+                                }
+
+                                // Create product using factory
+                                $product = \App\Factories\ProductFactory::create($args['category'], $category);
+
+                                // Set basic properties
+                                $product->setName($args['name'])
+                                    ->setBrand($args['brand'] ?? '')
+                                    ->setDescription($args['description'] ?? '')
+                                    ->setInStock($args['inStock'] ?? true)
+                                    ->setGallery($args['gallery'] ?? []);
+
+                                // Add attributes if provided
+                                if (isset($args['attributes'])) {
+                                    foreach ($args['attributes'] as $attr) {
+                                        if (!$product->addAttribute($attr['name'], $attr['items'])) {
+                                            throw new RuntimeException("Invalid attribute: {$attr['name']} for category {$args['category']}");
+                                        }
+                                    }
+                                }
+
+                                // Set price if provided
+                                if (isset($args['price'])) {
+                                    $product->setPrice(
+                                        $args['price']['amount'],
+                                        $args['price']['currency']['label'],
+                                        $args['price']['currency']['symbol']
+                                    );
+                                }
+
+                                self::$entityManager->persist($product);
+                                self::$entityManager->flush();
+
+                                error_log("Product created successfully: {$product->getName()}\n", 3, $logFile);
+                                return $product;
+                            } catch (Throwable $e) {
+                                error_log("Product creation failed: {$e->getMessage()}\n", 3, $logFile);
+                                throw $e;
+                            }
+                        }
+                    ],
+                    'updateProduct' => [
+                        'type' => $productType,
+                        'args' => [
+                            'id' => ['type' => Type::nonNull(Type::int())],
+                            'name' => ['type' => Type::string()],
+                            'brand' => ['type' => Type::string()],
+                            'description' => ['type' => Type::string()],
+                            'inStock' => ['type' => Type::boolean()],
+                            'gallery' => ['type' => Type::listOf(Type::string())]
+                        ],
+                        'resolve' => function ($root, array $args) {
+                            $product = self::$entityManager->find(Product::class, $args['id']);
+                            if (!$product) {
+                                throw new RuntimeException("Product not found: {$args['id']}");
+                            }
+
+                            if (isset($args['name'])) {
+                                $product->setName($args['name']);
+                            }
+                            if (isset($args['brand'])) {
+                                $product->setBrand($args['brand']);
+                            }
+                            if (isset($args['description'])) {
+                                $product->setDescription($args['description']);
+                            }
+                            if (isset($args['inStock'])) {
+                                $product->setInStock($args['inStock']);
+                            }
+                            if (isset($args['gallery'])) {
+                                $product->setGallery($args['gallery']);
+                            }
+
+                            self::$entityManager->flush();
+                            return $product;
+                        }
+                    ],
+                    'deleteProduct' => [
+                        'type' => Type::boolean(),
+                        'args' => [
+                            'id' => ['type' => Type::nonNull(Type::int())]
+                        ],
+                        'resolve' => function ($root, array $args) use ($logFile) {
+                            try {
+                                $product = self::$entityManager->find(StandardProduct::class, $args['id']);
+                                if (!$product) {
+                                    throw new RuntimeException("Product with ID {$args['id']} not found");
+                                }
+
+                                self::$entityManager->remove($product);
+                                self::$entityManager->flush();
+
+                                error_log("Product deleted successfully: ID {$args['id']}\n", 3, $logFile);
+                                return true;
+                            } catch (Throwable $e) {
+                                error_log("Product deletion failed: {$e->getMessage()}\n", 3, $logFile);
+                                throw $e;
+                            }
+                        }
                     ],
                 ],
             ]);

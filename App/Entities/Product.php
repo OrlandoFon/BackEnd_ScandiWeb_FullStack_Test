@@ -14,7 +14,7 @@ use Doctrine\Common\Collections\Collection;
 #[ORM\Table(name: 'products')]
 #[ORM\InheritanceType('SINGLE_TABLE')]
 #[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
-#[ORM\DiscriminatorMap(['tech' => 'Tech', 'clothes' => 'Clothes'])]
+#[ORM\DiscriminatorMap(['standard' => 'StandardProduct'])]
 abstract class Product
 {
     /**
