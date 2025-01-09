@@ -15,23 +15,28 @@ class StandardOrder extends Order
     /**
      * Constructor for StandardOrder.
      *
-     * @param Product $product The product being ordered.
-     * @param int $quantity The quantity of the product ordered.
-     * @param array $selectedAttributes The selected attributes of the product ordered.
+     * Initializes the StandardOrder by calling the parent constructor.
      */
-    public function __construct(Product $product, int $quantity, array $selectedAttributes = [])
+    public function __construct()
     {
-        parent::__construct($product, $quantity, $selectedAttributes);
+        parent::__construct();
     }
 
     /**
      * Calculates the total cost of the order.
-     * For standard orders, the total is simply the unit price multiplied by the quantity.
      *
-     * @return float The calculated total.
+     * This method overrides the abstract calculateTotal method from the parent Order class.
+     * It uses array_reduce to iterate over the orderedProducts array and sum up the 'total'
+     * value of each product to compute the overall total cost of the order.
+     *
+     * @return float The calculated total cost of the order.
      */
     protected function calculateTotal(): float
     {
-        return $this->unit_price * $this->quantity;
+        return array_reduce(
+            $this->orderedProducts, // The array of ordered products.
+            fn(float $sum, array $item) => $sum + $item['total'], // Callback to accumulate the total.
+            0.0 // Initial value of the sum.
+        );
     }
 }

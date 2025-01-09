@@ -14,7 +14,9 @@ use Doctrine\ORM\EntityManager;
 class OrderFactory
 {
     /**
-     * @var EntityManager The Doctrine EntityManager used for database interactions.
+     * Doctrine's EntityManager for interacting with the database.
+     *
+     * @var EntityManager
      */
     private EntityManager $entityManager;
 
@@ -29,56 +31,54 @@ class OrderFactory
     }
 
     /**
-     * Creates and persists an order instance.
+     * Creates and persists an Order with multiple products.
      *
-     * @param int $productId The ID of the product being ordered.
-     * @param int $quantity The quantity of the product ordered.
-     * @param array $selectedAttributes An array of selected attributes for the product.
-     * @return Order The created and persisted order instance.
-     * @throws \InvalidArgumentException If the product does not exist, quantity is invalid, or the product lacks a price.
-     * @throws \Throwable If any other error occurs during order creation.
+     * @param array $products An array of products to be included in the order.
+     *                        Each product should be an associative array with keys:
+     *                        - 'productId' (int): The ID of the product.
+     *                        - 'quantity' (int): The quantity of the product.
+     *                        - 'selectedAttributes' (array, optional): An array of selected attributes for the product.
+     *
+     * @return Order The created and persisted Order instance.
+     *
+     * @throws \InvalidArgumentException If a product is not found, quantity is invalid, or product has no price.
+     * @throws \Throwable For any other exceptions that occur during order creation.
      */
-    public function createOrder(int $productId, int $quantity, array $selectedAttributes = []): Order
+    public function createOrder(array $products): Order
     {
         try {
             $this->entityManager->beginTransaction();
 
-            $product = $this->entityManager->find(Product::class, $productId);
-            if (!$product) {
-                throw new \InvalidArgumentException("Product not found: {$productId}");
-            }
+            $order = new StandardOrder();
 
-            if ($quantity <= 0) {
-                throw new \InvalidArgumentException("Quantity must be positive");
-            }
+            foreach ($products as $item) {
+                $product = $this->entityManager->find(Product::class, $item['productId']);
 
-            if (!$product->getPrice()) {
-                throw new \InvalidArgumentException("Product has no price");
-            }
-
-            // Validate selected attributes against product attributes
-            $productAttributes = $product->getAttributes();
-            foreach ($selectedAttributes as $attr) {
-                $found = false;
-                foreach ($productAttributes as $productAttr) {
-                    if ($productAttr->getName() === $attr['name']) {
-                        $found = true;
-                        break;
-                    }
+                if (!$product) {
+                    throw new \InvalidArgumentException("Product not found: {$item['productId']}");
                 }
-                if (!$found) {
-                    throw new \InvalidArgumentException("Invalid attribute: {$attr['name']}");
+
+                if ($item['quantity'] <= 0) {
+                    throw new \InvalidArgumentException("Quantity must be positive");
                 }
+
+                if (!$product->getPrice()) {
+                    throw new \InvalidArgumentException("Product has no price");
+                }
+
+                $order->addProduct($product, $item['quantity'], $item['selectedAttributes'] ?? []);
             }
 
-            $order = new StandardOrder($product, $quantity, $selectedAttributes);
             $this->entityManager->persist($order);
+
             $this->entityManager->flush();
+
             $this->entityManager->commit();
 
             return $order;
         } catch (\Throwable $e) {
             $this->entityManager->rollback();
+
             throw $e;
         }
     }

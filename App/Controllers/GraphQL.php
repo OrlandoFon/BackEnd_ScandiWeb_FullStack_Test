@@ -132,39 +132,39 @@ class GraphQL
                         'type' => Type::int(),
                         'resolve' => fn(Order $order) => $order->getId()
                     ],
-                    'product' => [
-                        'type' => $productType,
-                        'resolve' => fn(Order $order) => $order->getProduct()
-                    ],
-                    'quantity' => [
-                        'type' => Type::int(),
-                        'resolve' => fn(Order $order) => $order->getQuantity()
-                    ],
-                    'unit_price' => [
-                        'type' => Type::float(),
-                        'resolve' => fn(Order $order) => $order->getUnitPrice()
+                    'orderedProducts' => [
+                        'type' => Type::listOf(new ObjectType([
+                            'name' => 'OrderedProduct',
+                            'fields' => [
+                                'product' => [
+                                    'type' => $productType,
+                                    'resolve' => fn(array $op) => self::$entityManager->find(Product::class, $op['product_id'])
+                                ],
+                                'quantity' => ['type' => Type::int()],
+                                'unitPrice' => [
+                                    'type' => Type::float(),
+                                    'resolve' => fn(array $op) => $op['unit_price']
+                                ],
+                                'total' => ['type' => Type::float()],
+                                'selectedAttributes' => [
+                                    'type' => Type::listOf(new ObjectType([
+                                        'name' => 'OrderAttribute',
+                                        'fields' => [
+                                            'name' => ['type' => Type::string()],
+                                            'value' => ['type' => Type::string()]
+                                        ]
+                                    ])),
+                                    'resolve' => fn(array $op) => $op['selected_attributes']
+                                ]
+                            ]
+                        ])),
+                        'resolve' => fn(Order $order) => $order->getOrderedProducts()
                     ],
                     'total' => [
                         'type' => Type::float(),
                         'resolve' => fn(Order $order) => $order->getTotal()
                     ],
-                    'selectedAttributes' => [
-                        'type' => Type::listOf(new ObjectType([
-                            'name' => 'OrderAttribute',
-                            'fields' => [
-                                'name' => ['type' => Type::string()],
-                                'value' => ['type' => Type::string()]
-                            ]
-                        ])),
-                        'resolve' => fn(Order $order) => array_map(
-                            fn($attr) => [
-                                'name' => $attr['name'],
-                                'value' => $attr['value']
-                            ],
-                            $order->getSelectedAttributes() ?? []
-                        )
-                    ],
-                    'created_at' => [
+                    'createdAt' => [
                         'type' => Type::string(),
                         'resolve' => fn(Order $order) => $order->getCreatedAt()->format('Y-m-d H:i:s')
                     ]
@@ -229,39 +229,31 @@ class GraphQL
                     'createOrder' => [
                         'type' => $orderType,
                         'args' => [
-                            'productId' => ['type' => Type::nonNull(Type::int())],
-                            'quantity' => ['type' => Type::nonNull(Type::int())],
-                            'selectedAttributes' => [
-                                'type' => Type::listOf(new InputObjectType([
-                                    'name' => 'OrderAttributeInput',
+                            'products' => [
+                                'type' => Type::nonNull(Type::listOf(new InputObjectType([
+                                    'name' => 'OrderProductInput',
                                     'fields' => [
-                                        'name' => ['type' => Type::nonNull(Type::string())],
-                                        'value' => ['type' => Type::nonNull(Type::string())]
+                                        'productId' => ['type' => Type::nonNull(Type::int())],
+                                        'quantity' => ['type' => Type::nonNull(Type::int())],
+                                        'selectedAttributes' => [
+                                            'type' => Type::listOf(new InputObjectType([
+                                                'name' => 'OrderAttributeInput',
+                                                'fields' => [
+                                                    'name' => ['type' => Type::nonNull(Type::string())],
+                                                    'value' => ['type' => Type::nonNull(Type::string())]
+                                                ]
+                                            ]))
+                                        ]
                                     ]
-                                ]))
+                                ])))
                             ]
                         ],
                         'resolve' => function ($root, array $args) use ($logFile) {
                             try {
                                 $orderFactory = new \App\Factories\OrderFactory(self::$entityManager);
-                                $selectedAttributes = array_map(
-                                    fn($attr) => [
-                                        'name' => $attr['name'],
-                                        'value' => $attr['value']
-                                    ],
-                                    $args['selectedAttributes'] ?? []
-                                );
+                                $order = $orderFactory->createOrder($args['products']);
 
-                                $order = $orderFactory->createOrder(
-                                    $args['productId'],
-                                    $args['quantity'],
-                                    $selectedAttributes
-                                );
-
-                                self::$entityManager->persist($order);
-                                self::$entityManager->flush();
-
-                                error_log("Order created successfully with attributes: " . json_encode($selectedAttributes) . "\n", 3, $logFile);
+                                error_log("Order created with " . count($args['products']) . " products\n", 3, $logFile);
                                 return $order;
                             } catch (Throwable $e) {
                                 error_log("Order creation failed: " . $e->getMessage() . "\n", 3, $logFile);
