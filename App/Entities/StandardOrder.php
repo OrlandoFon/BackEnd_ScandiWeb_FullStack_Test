@@ -17,10 +17,11 @@ class StandardOrder extends Order
      *
      * @param Product $product The product being ordered.
      * @param int $quantity The quantity of the product ordered.
+     * @param array $selectedAttributes The selected attributes of the product ordered.
      */
-    public function __construct(Product $product, int $quantity)
+    public function __construct(Product $product, int $quantity, array $selectedAttributes = [])
     {
-        parent::__construct($product, $quantity);
+        parent::__construct($product, $quantity, $selectedAttributes);
     }
 
     /**

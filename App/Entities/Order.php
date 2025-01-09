@@ -46,6 +46,12 @@ abstract class Order
     protected float $total;
 
     /**
+     * @var array The selected attributes of the product ordered.
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private array $selectedAttributes = [];
+
+    /**
      * @var \DateTime The creation timestamp of the order.
      */
     #[ORM\Column(type: 'datetime')]
@@ -57,11 +63,12 @@ abstract class Order
      * @param Product $product The product being ordered.
      * @param int $quantity The quantity of the product ordered.
      */
-    public function __construct(Product $product, int $quantity)
+    public function __construct(Product $product, int $quantity, array $selectedAttributes = [])
     {
         $this->product = $product;
         $this->quantity = $quantity;
         $this->unit_price = $product->getPrice()->getAmount();
+        $this->selectedAttributes = $selectedAttributes;
         $this->total = $this->calculateTotal();
         $this->created_at = new \DateTime();
     }
@@ -122,6 +129,28 @@ abstract class Order
     public function getTotal(): float
     {
         return $this->total;
+    }
+
+    /**
+     * Sets the selected attributes of the order
+     *
+     * @param array $attributes Array of selected attributes
+     * @return self Returns the current instance for method chaining
+     */
+    public function setSelectedAttributes(array $attributes): self
+    {
+        $this->selectedAttributes = $attributes;
+        return $this;
+    }
+
+    /**
+     * Gets the selected attributes of the order
+     *
+     * @return array Array of selected attributes
+     */
+    public function getSelectedAttributes(): array
+    {
+        return $this->selectedAttributes;
     }
 
     /**

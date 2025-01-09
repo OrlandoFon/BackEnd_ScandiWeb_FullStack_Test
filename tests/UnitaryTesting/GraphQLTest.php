@@ -227,16 +227,22 @@ class GraphQLTest extends TestCase
      */
     public function testCreateOrderMutation(): void
     {
-        // First query products to get valid ID
+        // Query products first to get valid ID and attributes
         $query = [
             'query' => '
-                query {
-                    products {
-                        id
+            query {
+                products {
+                    id
+                    name
+                    attributes {
                         name
+                        items {
+                            value
+                        }
                     }
                 }
-            '
+            }
+        '
         ];
 
         $productsResponse = $this->executeGraphQL($query);
@@ -247,23 +253,41 @@ class GraphQLTest extends TestCase
         $productId = $firstProduct['id'];
         $expectedName = $firstProduct['name'];
 
+        // Prepare selected attributes
+        $selectedAttributes = [];
+        foreach ($firstProduct['attributes'] as $attr) {
+            $selectedAttributes[] = [
+                'name' => $attr['name'],
+                'value' => $attr['items'][0]['value']
+            ];
+        }
+
         $mutation = [
-            'query' => "
-                mutation {
-                    createOrder(
-                        productId: $productId,
-                        quantity: 2
-                    ) {
-                        id
-                        product {
-                            name
-                        }
-                        quantity
-                        unit_price
-                        total
+            'query' => '
+            mutation($productId: Int!, $attributes: [OrderAttributeInput!]) {
+                createOrder(
+                    productId: $productId,
+                    quantity: 2,
+                    selectedAttributes: $attributes
+                ) {
+                    id
+                    product {
+                        name
+                    }
+                    quantity
+                    unit_price
+                    total
+                    selectedAttributes {
+                        name
+                        value
                     }
                 }
-            "
+            }
+        ',
+            'variables' => [
+                'productId' => $productId,
+                'attributes' => $selectedAttributes
+            ]
         ];
 
         $responseData = $this->executeGraphQL($mutation);
@@ -276,6 +300,10 @@ class GraphQLTest extends TestCase
         $this->assertArrayHasKey('id', $order);
         $this->assertNotNull($order['id']);
         $this->assertEquals($expectedName, $order['product']['name']);
+
+        // Verify selected attributes
+        $this->assertArrayHasKey('selectedAttributes', $order);
+        $this->assertEquals($selectedAttributes, $order['selectedAttributes']);
     }
 
     /**

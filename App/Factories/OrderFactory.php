@@ -33,11 +33,12 @@ class OrderFactory
      *
      * @param int $productId The ID of the product being ordered.
      * @param int $quantity The quantity of the product ordered.
+     * @param array $selectedAttributes An array of selected attributes for the product.
      * @return Order The created and persisted order instance.
      * @throws \InvalidArgumentException If the product does not exist, quantity is invalid, or the product lacks a price.
      * @throws \Throwable If any other error occurs during order creation.
      */
-    public function createOrder(int $productId, int $quantity): Order
+    public function createOrder(int $productId, int $quantity, array $selectedAttributes = []): Order
     {
         try {
             $this->entityManager->beginTransaction();
@@ -55,7 +56,22 @@ class OrderFactory
                 throw new \InvalidArgumentException("Product has no price");
             }
 
-            $order = new StandardOrder($product, $quantity);
+            // Validate selected attributes against product attributes
+            $productAttributes = $product->getAttributes();
+            foreach ($selectedAttributes as $attr) {
+                $found = false;
+                foreach ($productAttributes as $productAttr) {
+                    if ($productAttr->getName() === $attr['name']) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    throw new \InvalidArgumentException("Invalid attribute: {$attr['name']}");
+                }
+            }
+
+            $order = new StandardOrder($product, $quantity, $selectedAttributes);
             $this->entityManager->persist($order);
             $this->entityManager->flush();
             $this->entityManager->commit();
