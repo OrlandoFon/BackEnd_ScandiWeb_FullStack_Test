@@ -24,6 +24,17 @@ This project is a backend application developed as part of the ScandiWeb Junior 
 
 ---
 
+## Project Structure
+
+- **App/**: Contains the application logic, including controllers, entities, and factories.
+- **config/**: Configuration files for the database and application.
+- **data/**: Contains the `data.json` file for database seeding.
+- **logs/**: Stores log files.
+- **public/**: The document root for the PHP server.
+- **tests/**: Contains PHPUnit test cases.
+
+---
+
 ### How the Code Works
 
 Using Doctrine ORM, the application establishes relationships between database classes and tables.
@@ -495,17 +506,6 @@ Execute the following command to run all tests:
 ```bash
 docker exec -it php_app ./vendor/bin/phpunit /var/www/html/tests
 ```
-
----
-
-## Project Structure
-
-- **App/**: Contains the application logic, including controllers, entities, and factories.
-- **config/**: Configuration files for the database and application.
-- **data/**: Contains the `data.json` file for database seeding.
-- **logs/**: Stores log files.
-- **public/**: The document root for the PHP server.
-- **tests/**: Contains PHPUnit test cases.
 
 ---
 
