@@ -184,6 +184,12 @@ Ensure the following tools are installed on your system:
    docker compose up --build -d
    ```
 
+   After the containers are running, install the PHP dependencies using Composer:
+
+   ```bash
+   docker compose exec app composer install
+   ```
+   
 5. **Verify the Setup**  
    Once the containers are running, you can access the backend:
 
