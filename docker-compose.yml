@@ -1,22 +1,4 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: php_app
-    volumes:
-      - .:/var/www/html
-    ports:
-      - "9000:9000"
-    networks:
-      - app_network
-    depends_on:
-      - db
-    environment:
-      PHP_INI_SCAN_DIR: "/usr/local/etc/php/conf.d"
-      COMPOSER_ALLOW_SUPERUSER: 1
-    command: php -S 0.0.0.0:9000 -t public
-
   db:
     image: mysql:8.0
     container_name: ${DB_HOST}
@@ -31,17 +13,48 @@ services:
       - "3309:3306"
     networks:
       - app_network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "mysqladmin ping -h localhost -p${DB_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: php_app
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "9000:9000"
+    networks:
+      - app_network
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PHP_INI_SCAN_DIR: "/usr/local/etc/php/conf.d"
+      COMPOSER_ALLOW_SUPERUSER: 1
+    command: php -S 0.0.0.0:9000 -t public
 
   seed:
-    image: php:8.2-cli
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: db_seeder
     volumes:
       - .:/var/www/html
     working_dir: /var/www/html/config
-    depends_on:
-      - db
     networks:
       - app_network
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
     entrypoint: ["php", "seed.php"]
 
   php-cs-fixer:
@@ -53,6 +66,20 @@ services:
       - .:/app
     working_dir: /app
     command: composer fix-cs
+    networks:
+      - app_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - app_network
 
 volumes:
   db_data:

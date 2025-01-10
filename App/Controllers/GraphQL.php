@@ -57,16 +57,16 @@ class GraphQL
             $currencyType = new ObjectType([
                 'name' => 'Currency',
                 'fields' => [
-                    'label' => ['type' => Type::string(), 'resolve' => fn(Currency $currency) => $currency->getLabel()],
-                    'symbol' => ['type' => Type::string(), 'resolve' => fn(Currency $currency) => $currency->getSymbol()],
+                    'label' => ['type' => Type::string(), 'resolve' => fn (Currency $currency) => $currency->getLabel()],
+                    'symbol' => ['type' => Type::string(), 'resolve' => fn (Currency $currency) => $currency->getSymbol()],
                 ],
             ]);
 
             $attributeType = new ObjectType([
                 'name' => 'Attribute',
                 'fields' => [
-                    'id' => ['type' => Type::int(), 'resolve' => fn(Attribute $attr) => $attr->getId()],
-                    'name' => ['type' => Type::string(), 'resolve' => fn(Attribute $attr) => $attr->getName()],
+                    'id' => ['type' => Type::int(), 'resolve' => fn (Attribute $attr) => $attr->getId()],
+                    'name' => ['type' => Type::string(), 'resolve' => fn (Attribute $attr) => $attr->getName()],
                     'items' => [
                         'type' => Type::listOf(
                             new ObjectType([
@@ -77,33 +77,33 @@ class GraphQL
                                 ]
                             ])
                         ),
-                        'resolve' => fn(Attribute $attr) => array_map(
-                            fn($item) => [
+                        'resolve' => fn (Attribute $attr) => array_map(
+                            fn ($item) => [
                                 'value' => is_array($item) ? $item['value'] : json_decode($item, true)['value'] ?? '',
                                 'displayValue' => is_array($item) ? $item['displayValue'] : json_decode($item, true)['displayValue'] ?? '',
                             ],
                             $attr->getItems()
                         ),
                     ],
-                    'product_id' => ['type' => Type::int(), 'resolve' => fn(Attribute $attr) => $attr->getProduct()->getId()],
+                    'product_id' => ['type' => Type::int(), 'resolve' => fn (Attribute $attr) => $attr->getProduct()->getId()],
                 ],
             ]);
 
             $priceType = new ObjectType([
                 'name' => 'Price',
                 'fields' => [
-                    'id' => ['type' => Type::int(), 'resolve' => fn(Price $price) => $price->getId()],
-                    'amount' => ['type' => Type::float(), 'resolve' => fn(Price $price) => $price->getAmount()],
-                    'currency' => ['type' => $currencyType, 'resolve' => fn(Price $price) => $price->getCurrency()],
-                    'product_id' => ['type' => Type::int(), 'resolve' => fn(Price $price) => $price->getProduct()->getId()],
+                    'id' => ['type' => Type::int(), 'resolve' => fn (Price $price) => $price->getId()],
+                    'amount' => ['type' => Type::float(), 'resolve' => fn (Price $price) => $price->getAmount()],
+                    'currency' => ['type' => $currencyType, 'resolve' => fn (Price $price) => $price->getCurrency()],
+                    'product_id' => ['type' => Type::int(), 'resolve' => fn (Price $price) => $price->getProduct()->getId()],
                 ],
             ]);
 
             $categoryType = new ObjectType([
                 'name' => 'Category',
                 'fields' => [
-                    'id' => ['type' => Type::int(), 'resolve' => fn(Category $category) => $category->getId()],
-                    'name' => ['type' => Type::string(), 'resolve' => fn(Category $category) => $category->getName()],
+                    'id' => ['type' => Type::int(), 'resolve' => fn (Category $category) => $category->getId()],
+                    'name' => ['type' => Type::string(), 'resolve' => fn (Category $category) => $category->getName()],
                 ],
             ]);
 
@@ -113,15 +113,15 @@ class GraphQL
             $productType = new ObjectType([
                 'name' => 'Product',
                 'fields' => [
-                    'id' => ['type' => Type::int(), 'resolve' => fn(Product $product) => $product->getId()],
-                    'name' => ['type' => Type::string(), 'resolve' => fn(Product $product) => $product->getName()],
-                    'brand' => ['type' => Type::string(), 'resolve' => fn(Product $product) => $product->getBrand()],
-                    'inStock' => ['type' => Type::boolean(), 'resolve' => fn(Product $product) => $product->isInStock()],
-                    'description' => ['type' => Type::string(), 'resolve' => fn(Product $product) => $product->getDescription()],
-                    'gallery' => ['type' => Type::listOf(Type::string()), 'resolve' => fn(Product $product) => $product->getGallery()],
-                    'category' => ['type' => $categoryType, 'resolve' => fn(Product $product) => $product->getCategory()],
-                    'attributes' => ['type' => Type::listOf($attributeType), 'resolve' => fn(Product $product) => $product->getAttributes()->toArray()],
-                    'price' => ['type' => $priceType, 'resolve' => fn(Product $product) => $product->getPrice()],
+                    'id' => ['type' => Type::int(), 'resolve' => fn (Product $product) => $product->getId()],
+                    'name' => ['type' => Type::string(), 'resolve' => fn (Product $product) => $product->getName()],
+                    'brand' => ['type' => Type::string(), 'resolve' => fn (Product $product) => $product->getBrand()],
+                    'inStock' => ['type' => Type::boolean(), 'resolve' => fn (Product $product) => $product->isInStock()],
+                    'description' => ['type' => Type::string(), 'resolve' => fn (Product $product) => $product->getDescription()],
+                    'gallery' => ['type' => Type::listOf(Type::string()), 'resolve' => fn (Product $product) => $product->getGallery()],
+                    'category' => ['type' => $categoryType, 'resolve' => fn (Product $product) => $product->getCategory()],
+                    'attributes' => ['type' => Type::listOf($attributeType), 'resolve' => fn (Product $product) => $product->getAttributes()->toArray()],
+                    'price' => ['type' => $priceType, 'resolve' => fn (Product $product) => $product->getPrice()],
                 ],
             ]);
 
@@ -130,7 +130,7 @@ class GraphQL
                 'fields' => [
                     'id' => [
                         'type' => Type::int(),
-                        'resolve' => fn(Order $order) => $order->getId()
+                        'resolve' => fn (Order $order) => $order->getId()
                     ],
                     'orderedProducts' => [
                         'type' => Type::listOf(new ObjectType([
@@ -138,12 +138,12 @@ class GraphQL
                             'fields' => [
                                 'product' => [
                                     'type' => $productType,
-                                    'resolve' => fn(array $op) => self::$entityManager->find(Product::class, $op['product_id'])
+                                    'resolve' => fn (array $op) => self::$entityManager->find(Product::class, $op['product_id'])
                                 ],
                                 'quantity' => ['type' => Type::int()],
                                 'unitPrice' => [
                                     'type' => Type::float(),
-                                    'resolve' => fn(array $op) => $op['unit_price']
+                                    'resolve' => fn (array $op) => $op['unit_price']
                                 ],
                                 'total' => ['type' => Type::float()],
                                 'selectedAttributes' => [
@@ -154,19 +154,19 @@ class GraphQL
                                             'value' => ['type' => Type::string()]
                                         ]
                                     ])),
-                                    'resolve' => fn(array $op) => $op['selected_attributes']
+                                    'resolve' => fn (array $op) => $op['selected_attributes']
                                 ]
                             ]
                         ])),
-                        'resolve' => fn(Order $order) => $order->getOrderedProducts()
+                        'resolve' => fn (Order $order) => $order->getOrderedProducts()
                     ],
                     'total' => [
                         'type' => Type::float(),
-                        'resolve' => fn(Order $order) => $order->getTotal()
+                        'resolve' => fn (Order $order) => $order->getTotal()
                     ],
                     'createdAt' => [
                         'type' => Type::string(),
-                        'resolve' => fn(Order $order) => $order->getCreatedAt()->format('Y-m-d H:i:s')
+                        'resolve' => fn (Order $order) => $order->getCreatedAt()->format('Y-m-d H:i:s')
                     ]
                 ]
             ]);

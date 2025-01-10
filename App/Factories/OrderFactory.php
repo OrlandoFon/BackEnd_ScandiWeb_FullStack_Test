@@ -8,22 +8,22 @@ use App\Entities\Product;
 use Doctrine\ORM\EntityManager;
 
 /**
- * Factory class for creating order instances.
- * This class handles the creation and persistence of orders, ensuring that all business rules are enforced.
+ * Factory class responsible for creating and persisting Order entities.
+ * Ensures all business rules are enforced during the creation of orders.
  */
 class OrderFactory
 {
     /**
-     * Doctrine's EntityManager for interacting with the database.
+     * Doctrine EntityManager used for database interactions.
      *
      * @var EntityManager
      */
     private EntityManager $entityManager;
 
     /**
-     * Constructor for OrderFactory.
+     * Initializes the factory with a Doctrine EntityManager instance.
      *
-     * @param EntityManager $entityManager The Doctrine EntityManager instance.
+     * @param EntityManager $entityManager The EntityManager instance for database operations.
      */
     public function __construct(EntityManager $entityManager)
     {
@@ -33,25 +33,31 @@ class OrderFactory
     /**
      * Creates and persists an Order with multiple products.
      *
-     * @param array $products An array of products to be included in the order.
-     *                        Each product should be an associative array with keys:
-     *                        - 'productId' (int): The ID of the product.
-     *                        - 'quantity' (int): The quantity of the product.
-     *                        - 'selectedAttributes' (array, optional): An array of selected attributes for the product.
+     * @param array $products An array of product details for the order.
+     *                        Each product must include:
+     *                        - 'productId' (int): The unique identifier of the product.
+     *                        - 'quantity' (int): The number of units for the product.
+     *                        - 'selectedAttributes' (array, optional): Attributes selected for the product.
      *
      * @return Order The created and persisted Order instance.
      *
-     * @throws \InvalidArgumentException If a product is not found, quantity is invalid, or product has no price.
-     * @throws \Throwable For any other exceptions that occur during order creation.
+     * @throws \InvalidArgumentException If:
+     *         - A product is not found.
+     *         - The quantity is less than or equal to zero.
+     *         - A product has no price.
+     * @throws \Throwable For any other errors during the creation process.
      */
     public function createOrder(array $products): Order
     {
         try {
+            // Start a database transaction to ensure atomicity.
             $this->entityManager->beginTransaction();
 
+            // Create a new instance of the Order.
             $order = new StandardOrder();
 
             foreach ($products as $item) {
+                // Find the product entity by its ID.
                 $product = $this->entityManager->find(Product::class, $item['productId']);
 
                 if (!$product) {
@@ -66,17 +72,21 @@ class OrderFactory
                     throw new \InvalidArgumentException("Product has no price");
                 }
 
+                // Add the product to the order.
                 $order->addProduct($product, $item['quantity'], $item['selectedAttributes'] ?? []);
             }
 
+            // Persist the order in the database.
             $this->entityManager->persist($order);
 
+            // Finalize the transaction by saving changes.
             $this->entityManager->flush();
 
             $this->entityManager->commit();
 
             return $order;
         } catch (\Throwable $e) {
+            // Rollback the transaction in case of an error.
             $this->entityManager->rollback();
 
             throw $e;

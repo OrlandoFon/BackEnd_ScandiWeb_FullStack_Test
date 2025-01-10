@@ -6,6 +6,12 @@ use Doctrine\ORM\Tools\Setup;
 use Doctrine\ORM\EntityManager;
 use Config\Seeder;
 
+use Dotenv\Dotenv;
+
+// Load the .env file using vlucas/phpdotenv
+$dotenv = Dotenv::createImmutable(dirname(__DIR__));
+$dotenv->load();
+
 /**
  * Shared setup utility for database-related tests.
  * This class initializes a file-based SQLite database and seeds it with test data.
@@ -14,57 +20,58 @@ class TestSetup
 {
     /**
      * Initializes a file-based SQLite database and configures the Doctrine EntityManager.
+     * Skips tests if TESTING=0 in the environment.
      *
      * @return EntityManager The configured Doctrine EntityManager.
+     *
+     * @throws \RuntimeException If testing is disabled via environment.
      */
     public static function initializeEntityManager(): EntityManager
     {
-        // Include Composer autoloader for dependency management
+        // Skip tests if TESTING=0
+        if ($_ENV['TESTING'] === '0') {
+            throw new \RuntimeException("Tests are disabled because TESTING=0.");
+        }
+
+        // Include Composer autoloader
         require_once __DIR__ . '/../vendor/autoload.php';
 
-        // Define paths
+        // Paths
         $entityPath = dirname(__DIR__) . '/App/Entities';
         $dataDir = dirname(__DIR__) . '/data';
         $dbPath = $dataDir . '/test_db.sqlite';
 
-        // Ensure data directory exists
         if (!is_dir($dataDir)) {
             mkdir($dataDir, 0775, true);
         }
 
-        // Doctrine configuration for SQLite file-based database
+        // Doctrine configuration for SQLite
         $config = Setup::createAttributeMetadataConfiguration(
-            [$entityPath], // Path to entity classes
-            true,          // Enable development mode for detailed error messages
-            null,          // Proxy directory
-            null,          // Cache (null uses default cache)
-            false          // Use simple annotation reader
+            [$entityPath],
+            true,
+            null,
+            null,
+            false
         );
 
-        // SQLite connection parameters
         $connectionParams = [
             'driver' => 'pdo_sqlite',
-            'path' => $dbPath, // Path to the SQLite file
+            'path' => $dbPath,
         ];
 
         // Create EntityManager
-        $entityManager = EntityManager::create($connectionParams, $config);
-
-        return $entityManager;
+        return EntityManager::create($connectionParams, $config);
     }
 
     /**
      * Populates the SQLite database with test data using the Seeder class.
-     * Ensures that the database is clean before populating.
+     * Ensures a clean database before populating.
      *
      * @param EntityManager $entityManager The Doctrine EntityManager.
      * @return void
-     *
-     * @throws \Exception If seeding fails.
      */
     public static function populateDatabase(EntityManager $entityManager): void
     {
-        // Call the Seeder class to handle the seeding process
         Seeder::seedDatabase($entityManager);
     }
 }

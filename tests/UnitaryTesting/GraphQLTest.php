@@ -221,109 +221,6 @@ class GraphQLTest extends TestCase
     }
 
     /**
-     * Test creating a new order via GraphQL mutation.
-     *
-     * @return void
-     */
-    public function testCreateOrderMutation(): void
-    {
-        // Query products first to get valid IDs
-        $query = [
-            'query' => '
-                query {
-                    products {
-                        id
-                        name
-                        price {
-                            amount
-                        }
-                        attributes {
-                            name
-                            items {
-                                value
-                            }
-                        }
-                    }
-                }
-            '
-        ];
-
-        $productsResponse = $this->executeGraphQL($query);
-        $this->assertArrayHasKey('data', $productsResponse);
-        $this->assertNotEmpty($productsResponse['data']['products']);
-
-        // Prepare order items
-        $orderProducts = [];
-        foreach (array_slice($productsResponse['data']['products'], 0, 2) as $product) {
-            $orderProducts[] = [
-                'productId' => $product['id'],
-                'quantity' => 2,
-                'selectedAttributes' => array_map(
-                    fn($attr) => [
-                        'name' => $attr['name'],
-                        'value' => $attr['items'][0]['value']
-                    ],
-                    $product['attributes']
-                )
-            ];
-        }
-
-        $mutation = [
-            'query' => '
-                mutation CreateOrder($products: [OrderProductInput!]!) {
-                    createOrder(products: $products) {
-                        id
-                        orderedProducts {
-                            product {
-                                name
-                            }
-                            quantity
-                            unitPrice
-                            total
-                            selectedAttributes {
-                                name
-                                value
-                            }
-                        }
-                        total
-                        createdAt
-                    }
-                }
-            ',
-            'variables' => [
-                'products' => $orderProducts
-            ]
-        ];
-
-        $responseData = $this->executeGraphQL($mutation);
-
-        // Verify response structure
-        $this->assertArrayHasKey('data', $responseData);
-        $this->assertArrayHasKey('createOrder', $responseData['data']);
-
-        $order = $responseData['data']['createOrder'];
-        $this->assertNotNull($order['id']);
-        $this->assertNotEmpty($order['orderedProducts']);
-        $this->assertCount(count($orderProducts), $order['orderedProducts']);
-
-        // Verify each ordered product
-        foreach ($order['orderedProducts'] as $index => $item) {
-            $this->assertEquals(2, $item['quantity']);
-            $this->assertGreaterThan(0, $item['unitPrice']);
-            $this->assertEquals($item['unitPrice'] * $item['quantity'], $item['total']);
-        }
-
-        // Verify order total
-        $this->assertGreaterThan(0, $order['total']);
-        $expectedTotal = array_reduce(
-            $order['orderedProducts'],
-            fn($sum, $item) => $sum + $item['total'],
-            0
-        );
-        $this->assertEquals($expectedTotal, $order['total']);
-    }
-
-    /**
      * Test creating a new product via GraphQL mutation.
      *
      * @return void
@@ -508,6 +405,110 @@ class GraphQLTest extends TestCase
     }
 
     /**
+     * Test creating a new order via GraphQL mutation.
+     *
+     * @return void
+     */
+    public function testCreateOrderMutation(): void
+    {
+        // Query products first to get valid IDs
+        $query = [
+            'query' => '
+                query {
+                    products {
+                        id
+                        name
+                        price {
+                            amount
+                        }
+                        attributes {
+                            name
+                            items {
+                                value
+                            }
+                        }
+                    }
+                }
+            '
+        ];
+
+        $productsResponse = $this->executeGraphQL($query);
+        $this->assertArrayHasKey('data', $productsResponse);
+        $this->assertNotEmpty($productsResponse['data']['products']);
+
+        // Prepare order items
+        $orderProducts = [];
+        foreach (array_slice($productsResponse['data']['products'], 0, 2) as $product) {
+            $orderProducts[] = [
+                'productId' => $product['id'],
+                'quantity' => 2,
+                'selectedAttributes' => array_map(
+                    fn ($attr) => [
+                        'name' => $attr['name'],
+                        'value' => $attr['items'][0]['value']
+                    ],
+                    $product['attributes']
+                )
+            ];
+        }
+
+        $mutation = [
+            'query' => '
+                mutation CreateOrder($products: [OrderProductInput!]!) {
+                    createOrder(products: $products) {
+                        id
+                        orderedProducts {
+                            product {
+                                name
+                            }
+                            quantity
+                            unitPrice
+                            total
+                            selectedAttributes {
+                                name
+                                value
+                            }
+                        }
+                        total
+                        createdAt
+                    }
+                }
+            ',
+            'variables' => [
+                'products' => $orderProducts
+            ]
+        ];
+
+        $responseData = $this->executeGraphQL($mutation);
+
+        // Verify response structure
+        $this->assertArrayHasKey('data', $responseData);
+        $this->assertArrayHasKey('createOrder', $responseData['data']);
+
+        $order = $responseData['data']['createOrder'];
+        $this->assertNotNull($order['id']);
+        $this->assertNotEmpty($order['orderedProducts']);
+        $this->assertCount(count($orderProducts), $order['orderedProducts']);
+
+        // Verify each ordered product
+        foreach ($order['orderedProducts'] as $index => $item) {
+            $this->assertEquals(2, $item['quantity']);
+            $this->assertGreaterThan(0, $item['unitPrice']);
+            $this->assertEquals($item['unitPrice'] * $item['quantity'], $item['total']);
+        }
+
+        // Verify order total
+        $this->assertGreaterThan(0, $order['total']);
+        $expectedTotal = array_reduce(
+            $order['orderedProducts'],
+            fn ($sum, $item) => $sum + $item['total'],
+            0
+        );
+        $this->assertEquals($expectedTotal, $order['total']);
+    }
+
+
+    /**
      * Test querying orders via GraphQL.
      *
      * @return void
@@ -589,7 +590,7 @@ class GraphQLTest extends TestCase
                 // Verify total matches sum of items
                 $calculatedTotal = array_reduce(
                     $order['orderedProducts'],
-                    fn($sum, $item) => $sum + $item['total'],
+                    fn ($sum, $item) => $sum + $item['total'],
                     0
                 );
                 $this->assertEquals($calculatedTotal, $order['total']);

@@ -35,7 +35,7 @@ class StandardOrder extends Order
     {
         return array_reduce(
             $this->orderedProducts, // The array of ordered products.
-            fn(float $sum, array $item) => $sum + $item['total'], // Callback to accumulate the total.
+            fn (float $sum, array $item) => $sum + $item['total'], // Callback to accumulate the total.
             0.0 // Initial value of the sum.
         );
     }

@@ -5,17 +5,15 @@ namespace App\Entities;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Abstract class representing a generic Order.
- * This class allows an order to contain multiple products without requiring an additional entity.
+ * Abstract class representing an order.
+ * This class allows an order to include multiple products, without requiring a separate entity for product details.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'orders')]
 abstract class Order
 {
     /**
-     * Unique identifier for the order.
-     *
-     * @var int
+     * Unique identifier of the order.
      */
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -24,36 +22,30 @@ abstract class Order
 
     /**
      * List of products included in the order.
-     * Each product is represented as an associative array containing:
+     * Each product is stored as an associative array with the following keys:
      * - product_id: ID of the product.
-     * - quantity: Quantity ordered.
-     * - unit_price: Price per unit at the time of order.
-     * - total: Total price for the quantity ordered.
-     * - selected_attributes: Array of selected attributes for the product.
-     *
-     * @var array
+     * - quantity: Quantity of the product ordered.
+     * - unit_price: Unit price of the product at the time of the order.
+     * - total: Total cost for the product based on the quantity.
+     * - selected_attributes: Array of attributes selected for the product.
      */
     #[ORM\Column(type: 'json')]
     protected array $orderedProducts = [];
 
     /**
      * Total cost of the order.
-     *
-     * @var float
      */
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     protected float $total = 0.0;
 
     /**
-     * Timestamp indicating when the order was created.
-     *
-     * @var \DateTime
+     * Date and time when the order was created.
      */
     #[ORM\Column(type: 'datetime')]
     protected \DateTime $created_at;
 
     /**
-     * Constructor initializes the creation timestamp.
+     * Constructor to initialize the creation timestamp.
      */
     public function __construct()
     {
@@ -61,27 +53,24 @@ abstract class Order
     }
 
     /**
-     * Adds a product to the order.
+     * Add a product to the order.
      *
-     * @param Product $product            The product to add.
-     * @param int     $quantity           The quantity of the product.
-     * @param array   $selectedAttributes Optional array of selected attributes for the product.
+     * @param Product $product            Product being added to the order.
+     * @param int     $quantity           Quantity of the product.
+     * @param array   $selectedAttributes Attributes selected for the product.
      *
-     * @return self Returns the current instance for method chaining.
+     * @return self Returns the current order instance.
      *
-     * @throws \InvalidArgumentException If the product has no price.
+     * @throws \InvalidArgumentException If the product has no valid price.
      */
     public function addProduct(Product $product, int $quantity, array $selectedAttributes = []): self
     {
-        // Retrieve the unit price of the product. Defaults to 0.0 if no price is set.
         $unitPrice = $product->getPrice() ? $product->getPrice()->getAmount() : 0.0;
 
-        // Ensure that the product has a valid price.
         if ($unitPrice <= 0) {
             throw new \InvalidArgumentException("Product ID {$product->getId()} has an invalid price.");
         }
 
-        // Add the product details to the orderedProducts array.
         $this->orderedProducts[] = [
             'product_id'         => $product->getId(),
             'quantity'           => $quantity,
@@ -90,16 +79,15 @@ abstract class Order
             'selected_attributes' => $selectedAttributes
         ];
 
-        // Update the total cost of the order.
         $this->updateTotal();
 
         return $this;
     }
 
     /**
-     * Retrieves the list of ordered products.
+     * Retrieve all products included in the order.
      *
-     * @return array The array of ordered products.
+     * @return array Array of products in the order.
      */
     public function getOrderedProducts(): array
     {
@@ -107,9 +95,9 @@ abstract class Order
     }
 
     /**
-     * Gets the unique identifier of the order.
+     * Get the unique identifier of the order.
      *
-     * @return int The order ID.
+     * @return int ID of the order.
      */
     public function getId(): int
     {
@@ -117,9 +105,9 @@ abstract class Order
     }
 
     /**
-     * Gets the total cost of the order.
+     * Retrieve the total cost of the order.
      *
-     * @return float The total price.
+     * @return float Total cost of the order.
      */
     public function getTotal(): float
     {
@@ -127,9 +115,9 @@ abstract class Order
     }
 
     /**
-     * Gets the creation timestamp of the order.
+     * Get the creation timestamp of the order.
      *
-     * @return \DateTime The creation date and time.
+     * @return \DateTime Date and time the order was created.
      */
     public function getCreatedAt(): \DateTime
     {
@@ -137,7 +125,7 @@ abstract class Order
     }
 
     /**
-     * Recalculates and updates the total cost of the order.
+     * Update the total cost of the order.
      */
     protected function updateTotal(): void
     {
@@ -146,18 +134,18 @@ abstract class Order
 
     /**
      * Abstract method to calculate the total cost of the order.
-     * Must be implemented by subclasses to define specific calculation logic.
+     * Subclasses must implement specific logic for calculating the total.
      *
-     * @return float The calculated total.
+     * @return float Calculated total cost.
      */
     abstract protected function calculateTotal(): float;
 
     /**
-     * Removes a product from the order based on product ID.
+     * Remove a product from the order.
      *
-     * @param int $productId The ID of the product to remove.
+     * @param int $productId ID of the product to remove.
      *
-     * @return self Returns the current instance for method chaining.
+     * @return self Returns the current order instance.
      *
      * @throws \InvalidArgumentException If the product is not found in the order.
      */
@@ -166,7 +154,6 @@ abstract class Order
         foreach ($this->orderedProducts as $index => $product) {
             if ($product['product_id'] === $productId) {
                 unset($this->orderedProducts[$index]);
-                // Reindex the array to maintain consistent indexing.
                 $this->orderedProducts = array_values($this->orderedProducts);
                 $this->updateTotal();
                 return $this;
@@ -177,14 +164,14 @@ abstract class Order
     }
 
     /**
-     * Updates the quantity of a specific product in the order.
+     * Update the quantity of a specific product in the order.
      *
-     * @param int $productId The ID of the product to update.
-     * @param int $quantity  The new quantity.
+     * @param int $productId ID of the product to update.
+     * @param int $quantity  New quantity for the product.
      *
-     * @return self Returns the current instance for method chaining.
+     * @return self Returns the current order instance.
      *
-     * @throws \InvalidArgumentException If the product is not found or quantity is invalid.
+     * @throws \InvalidArgumentException If the product is not found or the quantity is invalid.
      */
     public function updateProductQuantity(int $productId, int $quantity): self
     {
@@ -205,9 +192,9 @@ abstract class Order
     }
 
     /**
-     * Clears all products from the order.
+     * Clear all products from the order.
      *
-     * @return self Returns the current instance for method chaining.
+     * @return self Returns the current order instance.
      */
     public function clearProducts(): self
     {
