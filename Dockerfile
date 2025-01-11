@@ -1,45 +1,38 @@
-# Dockerfile for PHP-CS-Fixer integration
+# Use PHP com FPM
 FROM php:8.1-fpm
 
-# Install necessary PHP extensions
+# Instalar extensões PHP e ferramentas necessárias
 RUN apt-get update && apt-get install -y \
-    libzip-dev zip unzip git curl libxml2-dev && \
-    docker-php-ext-install pdo pdo_mysql zip dom && \
-    pecl install xdebug && \
-    docker-php-ext-enable xdebug
+    libzip-dev zip unzip git curl libxml2-dev nginx \
+    && docker-php-ext-install pdo pdo_mysql zip dom \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug
 
-# Install Composer
+# Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install PHP-CS-Fixer globally
-RUN composer global require friendsofphp/php-cs-fixer
-
-# Add Composer global binaries to PATH
+# Configurar o PATH para Composer global
 ENV PATH="/root/.composer/vendor/bin:$PATH"
 
-# Set the working directory
+# Definir o diretório de trabalho
 WORKDIR /var/www/html
 
-# Copy the project files to the container
-COPY . /var/www/html
+# Copiar arquivos do projeto para o container
+COPY . .
 
-# Run PHP-CS-Fixer automatically during build
-RUN php-cs-fixer fix /var/www/html --verbose --allow-risky=yes || true
+# Criar o diretório de logs, se não existir
+RUN mkdir -p /var/www/html/logs
 
-# Install project dependencies using Composer
-RUN composer install --no-dev --optimize-autoloader
-
-# Set permissions
+# Ajustar permissões para o diretório de trabalho e logs
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html && chmod -R 775 /var/www/html/logs
+    && chmod -R 755 /var/www/html \
+    && chmod -R 775 /var/www/html/logs
 
-RUN apt-get install -y nginx
-
+# Copiar configuração do NGINX
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-
-# Expose the PHP server on port 9000
+# Expor a porta 80 para o NGINX
 EXPOSE 80
 
-# Command to start PHP-FPM
+# Comando para iniciar PHP-FPM e NGINX
 CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
