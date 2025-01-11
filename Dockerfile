@@ -1,33 +1,45 @@
-# Adjusted Dockerfile for PHP + NGINX
-
+# Dockerfile for PHP-CS-Fixer integration
 FROM php:8.1-fpm
 
 # Install necessary PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql mysqli
+RUN apt-get update && apt-get install -y \
+    libzip-dev zip unzip git curl libxml2-dev && \
+    docker-php-ext-install pdo pdo_mysql zip dom && \
+    pecl install xdebug && \
+    docker-php-ext-enable xdebug
 
 # Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install PHP-CS-Fixer globally
+RUN composer global require friendsofphp/php-cs-fixer
+
+# Add Composer global binaries to PATH
+ENV PATH="/root/.composer/vendor/bin:$PATH"
 
 # Set the working directory
 WORKDIR /var/www/html
 
-# Copy application files
-COPY . .
+# Copy the project files to the container
+COPY . /var/www/html
 
-# Install PHP dependencies
+# Run PHP-CS-Fixer automatically during build
+RUN php-cs-fixer fix /var/www/html --verbose --allow-risky=yes || true
+
+# Install project dependencies using Composer
 RUN composer install --no-dev --optimize-autoloader
 
-# Adjust permissions for logs
-RUN chmod -R 775 /var/www/html/logs
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html && chmod -R 775 /var/www/html/logs
 
-# Install NGINX
-RUN apt-get update && apt-get install -y nginx
+RUN apt-get install -y nginx
 
-# Copy NGINX configuration file
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose the HTTP port
+
+# Expose the PHP server on port 9000
 EXPOSE 80
 
-# Start NGINX and PHP-FPM
+# Command to start PHP-FPM
 CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
