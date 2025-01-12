@@ -3,9 +3,9 @@
 use Dotenv\Dotenv;
 
 // Load the .env file using vlucas/phpdotenv
-if (file_exists(BASE_DIR . '/.env')) {
-    $dotenv = Dotenv::createImmutable(BASE_DIR);
-    $dotenv->load();
+if (file_exists(dirname(__DIR__) . '/.env')) {
+$dotenv = Dotenv::createImmutable(dirname(__DIR__));
+$dotenv->load();
 }
 
 // Determine whether to use JawsDB or local database
