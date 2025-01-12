@@ -75,28 +75,20 @@ function cors(array $allowedOrigins): void
             header("Access-Control-Allow-Origin: $origin");
             header("Access-Control-Allow-Credentials: true");
             header("Access-Control-Max-Age: 86400"); // Cache for 1 day
+            header("Vary: Origin"); // For cache variations
         }
     }
 
-    // Handle preflight OPTIONS requests
+    // Handle OPTIONS preflight requests
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-            header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
-        }
-        if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-            header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-        }
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
+        header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+        header("Access-Control-Allow-Credentials: true");
+        header("Access-Control-Max-Age: 86400"); // Cache for 1 day
         http_response_code(204); // No Content
         exit;
     }
-
-    // Ensure CORS headers are sent with the actual response as well
-    if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins)) {
-        header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-        header("Access-Control-Allow-Credentials: true");
-    }
 }
-
 
 /**
  * Setup the EntityManager based on the environment.
