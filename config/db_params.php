@@ -6,12 +6,27 @@ use Dotenv\Dotenv;
 $dotenv = Dotenv::createImmutable(dirname(__DIR__));
 $dotenv->load();
 
-// Return the database connection parameters using environment variables
-return [
-    'driver' => 'pdo_mysql', // Database driver
-    'host' => $_ENV['DB_HOST'], // Database host
-    'dbname' => $_ENV['DB_NAME'], // Database name
-    'user' => $_ENV['DB_USER'], // Database username
-    'password' => $_ENV['DB_PASSWORD'], // Database password
-    'charset' => 'utf8mb4', // Character set
-];
+// Determine whether to use JawsDB or local database
+if ($_ENV['USE_JAWSDB'] === '1') {
+    // JawsDB configuration
+    return [
+        'driver'   => 'pdo_mysql',
+        'host'     => $_ENV['DB_JAWS_HOST'],
+        'port'     => $_ENV['DB_JAWS_PORT'],
+        'dbname'   => $_ENV['DB_JAWS_NAME'],
+        'user'     => $_ENV['DB_JAWS_USER'],
+        'password' => $_ENV['DB_JAWS_PASSWORD'],
+        'charset'  => 'utf8mb4',
+    ];
+} else {
+    // Local database configuration
+    return [
+        'driver'   => 'pdo_mysql',
+        'host'     => $_ENV['DB_HOST'],
+        'port'     => $_ENV['DB_PORT'],
+        'dbname'   => $_ENV['DB_NAME'],
+        'user'     => $_ENV['DB_USER'],
+        'password' => $_ENV['DB_PASSWORD'],
+        'charset'  => 'utf8mb4',
+    ];
+}
