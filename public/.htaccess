@@ -1,8 +1,12 @@
-# Define index.php as the default handler for all requests
-DirectoryIndex index.php
-
-# Redirect all requests to index.php if the file or directory doesn't exist
+# Enable URL rewriting
 RewriteEngine On
+
+# Check if the requested resource is not a file
 RewriteCond %{REQUEST_FILENAME} !-f
+
+# Check if the requested resource is not a directory
 RewriteCond %{REQUEST_FILENAME} !-d
+
+# Redirect all requests to index.php
 RewriteRule ^ index.php [L]
+
