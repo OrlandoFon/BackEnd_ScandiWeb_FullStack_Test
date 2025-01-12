@@ -1,1 +1,1 @@
-web: /bin/bash -c "/usr/local/bin/start.sh && apache2-foreground"
+web: vendor/bin/heroku-php-apache2 public/
