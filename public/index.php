@@ -66,26 +66,20 @@ function setupErrorHandlers(string $logFile): void
  */
 function cors(array $allowedOrigins): void
 {
-    // Check if the request's origin is allowed
-    if (isset($_SERVER['HTTP_ORIGIN'])) {
-        $origin = $_SERVER['HTTP_ORIGIN'];
-
-        // Ensure the origin is valid and matches HTTPS
-        if (in_array($origin, $allowedOrigins)) {
-            header("Access-Control-Allow-Origin: $origin");
-            header("Access-Control-Allow-Credentials: true");
-            header("Access-Control-Max-Age: 86400"); // Cache for 1 day
-            header("Vary: Origin"); // For cache variations
-        }
-    }
-
-    // Handle OPTIONS preflight requests
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
-        header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins)) {
+        header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
         header("Access-Control-Allow-Credentials: true");
         header("Access-Control-Max-Age: 86400"); // Cache for 1 day
-        http_response_code(204); // No Content
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
+            header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+        }
+        if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
+            header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+        }
+        http_response_code(204);
         exit;
     }
 }
