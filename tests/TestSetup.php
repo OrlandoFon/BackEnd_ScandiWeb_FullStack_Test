@@ -9,8 +9,10 @@ use Config\Seeder;
 use Dotenv\Dotenv;
 
 // Load the .env file using vlucas/phpdotenv
-$dotenv = Dotenv::createImmutable(dirname(__DIR__));
-$dotenv->load();
+if (file_exists(BASE_DIR . '/.env')) {
+    $dotenv = Dotenv::createImmutable(BASE_DIR);
+    $dotenv->load();
+}
 
 /**
  * Shared setup utility for database-related tests.
