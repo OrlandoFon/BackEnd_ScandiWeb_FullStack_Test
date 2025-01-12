@@ -21,8 +21,10 @@ require_once BASE_DIR . '/vendor/autoload.php';
 setupErrorHandlers($logFile);
 
 // Load environment variables
-$dotenv = Dotenv::createImmutable(BASE_DIR);
-$dotenv->load();
+if (file_exists(BASE_DIR . '/.env')) {
+    $dotenv = Dotenv::createImmutable(BASE_DIR);
+    $dotenv->load();
+}
 
 // Handle CORS
 cors([$_ENV['FRONTEND_URL']]);
