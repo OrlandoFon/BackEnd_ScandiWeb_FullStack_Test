@@ -5,7 +5,6 @@ namespace Tests;
 use Doctrine\ORM\Tools\Setup;
 use Doctrine\ORM\EntityManager;
 use Config\Seeder;
-
 use Dotenv\Dotenv;
 
 // Load the .env file using vlucas/phpdotenv

@@ -33,7 +33,19 @@ cors([$_ENV['FRONTEND_URL']]);
 $isTesting = $_ENV['TESTING'] ?? '0';
 $entityManager = setupEntityManager($isTesting);
 
-// Setup routing
+// Execute the CORS function only if LOCAL_DEPLOYMENT is not set to 1
+if (
+    !isset($_ENV['LOCAL_DEPLOYMENT']) ||
+    $_ENV['LOCAL_DEPLOYMENT'] !== '1'
+) {
+    handleCors([$_ENV['FRONTEND_URL']]);
+}
+
+// Determine environment and set up the EntityManager
+$isTesting = $_ENV['TESTING'] ?? '0';
+$entityManager = initializeEntityManager($isTesting);
+
+// Set up routing
 $dispatcher = \FastRoute\simpleDispatcher(function (RouteCollector $r) {
     $r->post('/graphql', [\App\Controllers\GraphQL::class, 'handle']);
 });
