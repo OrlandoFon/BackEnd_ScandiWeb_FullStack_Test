@@ -1,6 +1,6 @@
 RewriteEngine On
 
-# Encaminha requisições para index.php, se não for arquivo ou diretório físico
+# Redirects requests to index.php if they are not physical files or directories
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [L]
