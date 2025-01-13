@@ -26,26 +26,19 @@ if (file_exists(BASE_DIR . '/.env')) {
     $dotenv->load();
 }
 
-// Handle CORS
-cors([$_ENV['FRONTEND_URL']]);
+// Execute function CORS only when LOCAL_DEPLOYMENT is not equal to 1 (true)
+if (
+    !isset($_ENV['LOCAL_DEPLOYMENT']) ||
+    $_ENV['LOCAL_DEPLOYMENT'] !== '1'
+) {
+    cors([$_ENV['FRONTEND_URL']]);
+}
 
 // Determine environment and setup EntityManager
 $isTesting = $_ENV['TESTING'] ?? '0';
 $entityManager = setupEntityManager($isTesting);
 
-// Execute the CORS function only if LOCAL_DEPLOYMENT is not set to 1
-if (
-    !isset($_ENV['LOCAL_DEPLOYMENT']) ||
-    $_ENV['LOCAL_DEPLOYMENT'] !== '1'
-) {
-    handleCors([$_ENV['FRONTEND_URL']]);
-}
-
-// Determine environment and set up the EntityManager
-$isTesting = $_ENV['TESTING'] ?? '0';
-$entityManager = initializeEntityManager($isTesting);
-
-// Set up routing
+// Setup routing
 $dispatcher = \FastRoute\simpleDispatcher(function (RouteCollector $r) {
     $r->post('/graphql', [\App\Controllers\GraphQL::class, 'handle']);
 });
@@ -78,7 +71,7 @@ function setupErrorHandlers(string $logFile): void
  */
 function cors(array $allowedOrigins): void
 {
-    if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins)) {
+    if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins, true)) {
         header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
         header("Access-Control-Allow-Credentials: true");
         header("Access-Control-Max-Age: 86400"); // Cache for 1 day
@@ -155,4 +148,3 @@ function handleRequest($dispatcher, $entityManager): void
             break;
     }
 }
-
