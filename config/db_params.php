@@ -2,26 +2,26 @@
 
 use Dotenv\Dotenv;
 
-// Load the .env file using vlucas/phpdotenv
+// Load .env
 if (file_exists(dirname(__DIR__) . '/.env')) {
-$dotenv = Dotenv::createImmutable(dirname(__DIR__));
-$dotenv->load();
+    $dotenv = Dotenv::createImmutable(dirname(__DIR__));
+    $dotenv->load();
 }
 
-// Determine whether to use JawsDB or local database
-if ($_ENV['USE_JAWSDB'] === '1') {
-    // JawsDB configuration
+// Determine whether to use non-local database or local
+if (isset($_ENV['USE_NONLOCALDB']) && $_ENV['USE_NONLOCALDB'] === '1') {
+    // Non-local database config
     return [
         'driver'   => 'pdo_mysql',
-        'host'     => $_ENV['DB_JAWS_HOST'],
-        'port'     => $_ENV['DB_JAWS_PORT'],
-        'dbname'   => $_ENV['DB_JAWS_NAME'],
-        'user'     => $_ENV['DB_JAWS_USER'],
-        'password' => $_ENV['DB_JAWS_PASSWORD'],
+        'host'     => $_ENV['DB_NONLOCALDB_HOST'],
+        'port'     => $_ENV['DB_NONLOCALDB_PORT'],
+        'dbname'   => $_ENV['DB_NONLOCALDB_NAME'],
+        'user'     => $_ENV['DB_NONLOCALDB_USER'],
+        'password' => $_ENV['DB_NONLOCALDB_PASSWORD'],
         'charset'  => 'utf8mb4',
     ];
 } else {
-    // Local database configuration
+    // Local database
     return [
         'driver'   => 'pdo_mysql',
         'host'     => $_ENV['DB_HOST'],
