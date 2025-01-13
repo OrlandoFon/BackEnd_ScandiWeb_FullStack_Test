@@ -99,10 +99,12 @@ The application exposes a GraphQL API with the following capabilities:
 
 ### Reverse Proxy with NGINX
 
-NGINX acts as a reverse proxy, forwarding requests to the backend PHP application. It is configured to:
+In locla deployments NGINX acts as a reverse proxy, forwarding requests to the backend PHP application. It is configured to:
 
 - Handle Cross-Origin Resource Sharing (CORS) for frontend communication.
 - Route requests to the `/graphql` endpoint at `http://php_app:9000`.
+
+In **non-local deployments**, CORS handling is managed directly by the PHP.
 
 ---
 
@@ -160,22 +162,47 @@ Ensure the following tools are installed on your system:
    **Environment Variable Descriptions:**
 
    - **`DB_HOST`**: The hostname of the MySQL container.  
-     Default: `mysql_db`
-
+     **Default**: `mysql_db`
+   
    - **`DB_NAME`**: The name of the database used for the application.  
-     Default: `ecommercedata`
-
+     **Default**: `ecommercedata`
+   
    - **`DB_USER`**: The username for connecting to the database.  
-     Default: `scandiweb_user`
-
+     **Default**: `scandiweb_user`
+   
    - **`DB_PASSWORD`**: The password for the database user.  
-     Default: `scandiweb_password`
-
+     **Default**: `scandiweb_password`
+   
    - **`DB_ROOT_PASSWORD`**: The root password for the MySQL database.  
-     Default: `root`
+     **Default**: `root`
+   
+   - **`DB_NONLOCALDB_HOST`**: Hostname for the non-local database.  
+     **Default**: `yourNonLocalHost`
+   
+   - **`DB_NONLOCALDB_PORT`**: Port number for the non-local database.  
+     **Default**: `3306`
+   
+   - **`DB_NONLOCALDB_NAME`**: Name of the non-local database.  
+     **Default**: `yourNonLocalDB`
+   
+   - **`DB_NONLOCALDB_USER`**: Username for the non-local database.  
+     **Default**: `yourNonLocalUser`
+   
+   - **`DB_NONLOCALDB_PASSWORD`**: Password for the non-local database user.  
+     **Default**: `yourNonLocalPassword`
+   
+   - **`USE_NONLOCALDB`**: Flag to determine whether to use a non-local database.  
+     **Default**: `0` (set to `1` to use the non-local database)
+   
+   - **`LOCAL_DEPLOYMENT`**: Indicates if the application is being deployed locally.  
+     **Default**: `1`
+   
+   - **`TESTING`**: Flag to indicate if the application is running in testing mode.  
+     **Default**: `0` (set to `1` to enable testing configurations)
+   
+   - **`FRONTEND_URL`**: The URL of the frontend application.  
+     **Default**: `https://your-frontend-domain.com`
 
-   - **`TESTING`**: A flag to indicate if the application is running in testing mode.  
-     Default: `0` (set to `1` for enabling testing configurations)
 
 3. **Configure NGINX for Frontend Connectivity**
 
@@ -185,6 +212,8 @@ Ensure the following tools are installed on your system:
      add_header 'Access-Control-Allow-Origin' '<frontend-localhost>' always;
    ```
 
+   **Warning**: When `LOCAL_DEPLOYMENT` is set to `0` (false) in the `.env` file, the backend is configured to handle CORS directly. In this case, enabling NGINX with its own CORS handling may result in conflicts or unexpected behavior. **Avoid using NGINX for CORS while `LOCAL_DEPLOYMENT=0`.** Ensure only one method (backend or NGINX) is responsible for handling CORS.
+   
    Save the updated configuration.
 
 4. **Run the Application**
@@ -506,6 +535,17 @@ Execute the following command to run all tests:
 ```bash
 docker exec -it php_app ./vendor/bin/phpunit /var/www/html/tests
 ```
+
+----
+
+### Online Test Deployment
+
+The online test deployment of this project is hosted on [Render.com](https://render.com) with the database managed via [JawsDB](https://www.jawsdb.com). 
+
+- **Render.com**: Handles the deployment of the backend application, providing an easy-to-use platform for hosting and scaling.
+- **JawsDB**: Provides a managed MySQL database solution integrated with Render for seamless connectivity.
+
+This setup allows for efficient testing in an online environment while maintaining flexibility for local deployments.
 
 ---
 
